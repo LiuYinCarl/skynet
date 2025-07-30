@@ -42,11 +42,14 @@ skynet_handle_register(struct skynet_context *ctx) {
 		int i;
 		uint32_t handle = s->handle_index;
 		for (i=0;i<s->slot_size;i++,handle++) {
+            // handle 超过上限会绕回
 			if (handle > HANDLE_MASK) {
 				// 0 is reserved
 				handle = 1;
 			}
 			int hash = handle & (s->slot_size-1);
+            // 没有冲突就直接插入，否则继续找下一个可以插入的位置
+            // 这里使用开放地址法解决 hash 冲突
 			if (s->slot[hash] == NULL) {
 				s->slot[hash] = ctx;
 				s->handle_index = handle + 1;
@@ -58,6 +61,8 @@ skynet_handle_register(struct skynet_context *ctx) {
 			}
 		}
 		assert((s->slot_size*2 - 1) <= HANDLE_MASK);
+        // 找不到任何插入位置的话，就将 slot 扩容为原来两倍
+        // 并将原来 slot 中的内容迁移到新的 slot
 		struct skynet_context ** new_slot = skynet_malloc(s->slot_size * 2 * sizeof(struct skynet_context *));
 		memset(new_slot, 0, s->slot_size * 2 * sizeof(struct skynet_context *));
 		for (i=0;i<s->slot_size;i++) {
@@ -70,6 +75,9 @@ skynet_handle_register(struct skynet_context *ctx) {
 		skynet_free(s->slot);
 		s->slot = new_slot;
 		s->slot_size *= 2;
+        // 最后这里并没有将新的 ctx 插入进来
+        // 这是因为这里是一个无限循环，在下一个循环重新找位置进行插入
+        // 并返回，这种写法降低了逻辑复杂度
 	}
 }
 
@@ -80,6 +88,8 @@ skynet_handle_retire(uint32_t handle) {
 
 	rwlock_wlock(&s->lock);
 
+    // 通过 handle 计算 hash
+    // 通过 hash 拿到 skynet_context
 	uint32_t hash = handle & (s->slot_size-1);
 	struct skynet_context * ctx = s->slot[hash];
 
@@ -88,11 +98,15 @@ skynet_handle_retire(uint32_t handle) {
 		ret = 1;
 		int i;
 		int j=0, n=s->name_count;
+        // 遍历所有节点，如果节点是要退休的节点，那么释放 s->name
+        // 数组中对应位置的字符串，然后将s->name 数组后面的内容
+        // 往前移动一个位置
 		for (i=0; i<n; ++i) {
 			if (s->name[i].handle == handle) {
 				skynet_free(s->name[i].name);
 				continue;
 			} else if (i!=j) {
+                //
 				s->name[j] = s->name[i];
 			}
 			++j;
@@ -104,6 +118,7 @@ skynet_handle_retire(uint32_t handle) {
 
 	rwlock_wunlock(&s->lock);
 
+    // 释放 skynet_context
 	if (ctx) {
 		// release ctx may call skynet_handle_* , so wunlock first.
 		skynet_context_release(ctx);
@@ -155,9 +170,11 @@ skynet_handle_grab(uint32_t handle) {
 	return result;
 }
 
+// 二分法查找，通过 name 找到 handle
 uint32_t
 skynet_handle_findname(const char * name) {
 	struct handle_storage *s = H;
+    // LLOG("name=%s", name); // launcher/service/cslave etc.
 
 	rwlock_rlock(&s->lock);
 
@@ -185,6 +202,7 @@ skynet_handle_findname(const char * name) {
 	return handle;
 }
 
+// 二分法插入，能选择这个办法应该是因为 s->name 数组中的成员变动较少
 static void
 _insert_name_before(struct handle_storage *s, char *name, uint32_t handle, int before) {
 	if (s->name_count >= s->name_cap) {

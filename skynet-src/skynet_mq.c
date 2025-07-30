@@ -25,8 +25,8 @@ struct message_queue {
 	int head;
 	int tail;
 	int release;
-	int in_global;
-	int overload;
+	int in_global; // 这个字段是什么含义
+	int overload;  // 记录当前消息队列的负载，用来告警
 	int overload_threshold;
 	struct skynet_message *queue;
 	struct message_queue *next;
@@ -55,6 +55,7 @@ skynet_globalmq_push(struct message_queue * queue) {
 	SPIN_UNLOCK(q)
 }
 
+// 将全局队列的头部消息队列移除
 struct message_queue * 
 skynet_globalmq_pop() {
 	struct global_queue *q = Q;
@@ -108,6 +109,7 @@ skynet_mq_handle(struct message_queue *q) {
 	return q->handle;
 }
 
+// 获取消息队列的长度
 int
 skynet_mq_length(struct message_queue *q) {
 	int head, tail,cap;
@@ -124,6 +126,7 @@ skynet_mq_length(struct message_queue *q) {
 	return tail + cap - head;
 }
 
+// 返回消息队列的 overload，并将队列的 overload 设置为 0
 int
 skynet_mq_overload(struct message_queue *q) {
 	if (q->overload) {
@@ -134,12 +137,15 @@ skynet_mq_overload(struct message_queue *q) {
 	return 0;
 }
 
+// 从 queue 中取出一条消息存到 message 中
 int
 skynet_mq_pop(struct message_queue *q, struct skynet_message *message) {
 	int ret = 1;
 	SPIN_LOCK(q)
 
 	if (q->head != q->tail) {
+        // head != tail 说明有消息在队列中
+        // 这里从队列头取一条消息到 message
 		*message = q->queue[q->head++];
 		ret = 0;
 		int head = q->head;
@@ -149,19 +155,23 @@ skynet_mq_pop(struct message_queue *q, struct skynet_message *message) {
 		if (head >= cap) {
 			q->head = head = 0;
 		}
+        // 计算队列中剩余消息数量
 		int length = tail - head;
 		if (length < 0) {
 			length += cap;
 		}
+        // 更新队列的 overload 和 overload_threshold
 		while (length > q->overload_threshold) {
 			q->overload = length;
 			q->overload_threshold *= 2;
 		}
 	} else {
+        // 队列为空，重置 overload_threshold
 		// reset overload_threshold when queue is empty
 		q->overload_threshold = MQ_OVERLOAD;
 	}
 
+    // TODO 这里的目的是什么
 	if (ret) {
 		q->in_global = 0;
 	}
@@ -241,6 +251,7 @@ skynet_mq_release(struct message_queue *q, message_drop drop_func, void *ud) {
 	SPIN_LOCK(q)
 	
 	if (q->release) {
+        // TODO 为什么是先 unlock 再 drop
 		SPIN_UNLOCK(q)
 		_drop_queue(q, drop_func, ud);
 	} else {

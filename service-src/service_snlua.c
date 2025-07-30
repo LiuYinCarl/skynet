@@ -75,6 +75,7 @@ signal_hook(lua_State *L, lua_Debug *ar) {
 
 static void
 switchL(lua_State *L, struct snlua *l) {
+    // LLOG("switch L: %p", L);
 	l->activeL = L;
 	if (ATOM_LOAD(&l->trap)) {
 		lua_sethook(L, signal_hook, LUA_MASKCOUNT, 1);
@@ -90,6 +91,7 @@ lua_resumeX(lua_State *L, lua_State *from, int nargs, int *nresults) {
 	int err = lua_resume(L, from, nargs, nresults);
 	if (ATOM_LOAD(&l->trap)) {
 		// wait for lua_sethook. (l->trap == -1)
+        // 这里在做什么呢
 		while (ATOM_LOAD(&l->trap) >= 0) ;
 	}
 	switchL(from, l);
@@ -102,6 +104,7 @@ get_time() {
 	struct timespec ti;
 	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ti);
 
+    // TODO 这里为什么只取了16位的时间
 	int sec = ti.tv_sec & 0xffff;
 	int nsec = ti.tv_nsec;
 

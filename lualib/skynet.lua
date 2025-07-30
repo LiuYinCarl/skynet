@@ -676,7 +676,8 @@ function skynet.exit()
 		end
 	end)
 	c.command("EXIT")
-	-- quit service
+    -- quit service
+    skynet.error("before QUIT")
 	coroutine_yield "QUIT"
 end
 

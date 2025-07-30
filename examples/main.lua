@@ -17,6 +17,8 @@ skynet.start(function()
 		maxclient = max_client,
 		nodelay = true,
 	})
-	skynet.error("Watchdog listen on " .. addr .. ":" .. port)
-	skynet.exit()
+    skynet.error("Watchdog listen on " .. addr .. ":" .. port)
+    skynet.error("I am exit...")
+    skynet.exit()
+    skynet.error("I an exit...")
 end)

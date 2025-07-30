@@ -37,7 +37,8 @@ local function pause_socket(s, size)
 		skynet.error(string.format("Pause socket (%d)" , s.id))
 	end
 	driver.pause(s.id)
-	s.pause = true
+    s.pause = true
+    -- 为什么 pause 之后需要 yield 呢
 	skynet.yield()	-- there are subsequent socket messages in mqueue, maybe.
 end
 

@@ -92,9 +92,11 @@ static void
 push_queue_msg(struct harbor_msg_queue * queue, struct harbor_msg * m) {
 	// If there is only 1 free slot which is reserved to distinguish full/empty
 	// of circular buffer, expand it.
+    // 还差一个队列就满的话，将队列扩容为原始容量的两倍
 	if (((queue->tail + 1) % queue->size) == queue->head) {
 		struct harbor_msg * new_buffer = skynet_malloc(queue->size * 2 * sizeof(struct harbor_msg));
 		int i;
+        // 这里的写法保证了就环形队列的消息到了新环形队列，顺序不变
 		for (i=0;i<queue->size-1;i++) {
 			new_buffer[i] = queue->data[(i+queue->head) % queue->size];
 		}
@@ -104,8 +106,10 @@ push_queue_msg(struct harbor_msg_queue * queue, struct harbor_msg * m) {
 		queue->tail = queue->size - 1;
 		queue->size *= 2;
 	}
+    // 插入新的 msg
 	struct harbor_msg * slot = &queue->data[queue->tail];
 	*slot = *m;
+    // 更新队列尾指针
 	queue->tail = (queue->tail + 1) % queue->size;
 }
 
@@ -128,6 +132,7 @@ pop_queue(struct harbor_msg_queue * queue) {
 	return slot;
 }
 
+// 创建一个默认长度 1024 的环形队列
 static struct harbor_msg_queue *
 new_queue() {
 	struct harbor_msg_queue * queue = skynet_malloc(sizeof(*queue));
@@ -139,6 +144,7 @@ new_queue() {
 	return queue;
 }
 
+// 销毁队列
 static void
 release_queue(struct harbor_msg_queue *queue) {
 	if (queue == NULL)
@@ -151,6 +157,8 @@ release_queue(struct harbor_msg_queue *queue) {
 	skynet_free(queue);
 }
 
+//寻找hash节点，先计算 name 的 hash 值，然后找到对应的槽位
+// 槽位是一个节点的链表，遍历链表找到 name 相同的节点
 static struct keyvalue *
 hash_search(struct hashmap * hash, const char name[GLOBALNAME_LENGTH]) {
 	uint32_t *ptr = (uint32_t*) name;
@@ -187,6 +195,7 @@ hash_erase(struct hashmap * hash, char name[GLOBALNAME_LENGTH) {
 }
 */
 
+// 插入 hash 节点，如果有冲突，新节点插在冲突链表的开头位置
 static struct keyvalue *
 hash_insert(struct hashmap * hash, const char name[GLOBALNAME_LENGTH]) {
 	uint32_t *ptr = (uint32_t *)name;
@@ -275,6 +284,7 @@ harbor_release(struct harbor *h) {
 	skynet_free(h);
 }
 
+// 将 n 转化为大端序
 static inline void
 to_bigendian(uint8_t *buffer, uint32_t n) {
 	buffer[0] = (n >> 24) & 0xff;

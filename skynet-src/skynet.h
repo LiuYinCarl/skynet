@@ -5,6 +5,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #define PTYPE_TEXT 0
 #define PTYPE_RESPONSE 1
@@ -40,5 +41,7 @@ void skynet_callback(struct skynet_context * context, void *ud, skynet_cb cb);
 uint32_t skynet_current_handle(void);
 uint64_t skynet_now(void);
 void skynet_debug_memory(const char *info);	// for debug use, output current service memory to stderr
+
+#define LLOG(fmt, ...) printf("\033[31m[DEBUG] " fmt "\033[0m\n", ##__VA_ARGS__)
 
 #endif

@@ -14,8 +14,8 @@ struct hashid {
 	int hashmod;
 	int cap;
 	int count;
-	struct hashid_node *id;
-	struct hashid_node **hash;
+	struct hashid_node *id; // 数组的下标表示id,内容表示数据
+	struct hashid_node **hash; // 使用开链法哈希加速查询
 };
 
 static void

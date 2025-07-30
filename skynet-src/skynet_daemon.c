@@ -9,6 +9,7 @@
 
 #include "skynet_daemon.h"
 
+// 从 pidfile 文件里读出 pid 并检查进程是否存活
 static int
 check_pid(const char *pidfile) {
 	int pid = 0;
@@ -21,13 +22,20 @@ check_pid(const char *pidfile) {
 	if (n !=1 || pid == 0 || pid == getpid()) {
 		return 0;
 	}
-
+    // 这里是一个技巧性较强的写法
+    // linux 中没有为 0 的信号
+    // kill(pid, 0) 实际作用是执行错误检查，验证目标进程的有效性及权限
+    // 目标进程存在，且当前进程有权限向其发送信号时返回 0
+    // 否则返回 -1 同时设置错误码
+    // ESRCH：目标进程不存在（包括僵尸进程已终止但未被回收）
+    // EPERM：当前进程无权向目标进程发送信号（例如普通用户尝试向系统进程发信号）
 	if (kill(pid, 0) && errno == ESRCH)
 		return 0;
 
 	return pid;
 }
 
+// 将 pid 写到 pidfile 中
 static int
 write_pid(const char *pidfile) {
 	FILE *f;
@@ -43,7 +51,9 @@ write_pid(const char *pidfile) {
 		return 0;
 	}
 
+    // 尝试锁住 pidfile
 	if (flock(fd, LOCK_EX|LOCK_NB) == -1) {
+        // 锁定失败，读取 pidfile 看是哪个进程已经锁住了 pidfile
 		int n = fscanf(f, "%d", &pid);
 		fclose(f);
 		if (n != 1) {

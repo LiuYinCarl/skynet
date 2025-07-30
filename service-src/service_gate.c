@@ -61,6 +61,8 @@ gate_release(struct gate *g) {
 	skynet_free(g);
 }
 
+// 这个函数负责将字符串第一个空格前的字符去掉
+// 如 "kick 1001" 调用这个函数后变为 "1001"
 static void
 _parm(char *msg, int sz, int command_sz) {
 	while (command_sz < sz) {

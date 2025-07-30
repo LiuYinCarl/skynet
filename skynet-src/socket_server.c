@@ -2467,7 +2467,7 @@ socket_server_info(struct socket_server *ss) {
 			// socket_server_info may call in different thread, so check socket id again
 			si = socket_info_create(si);
 			temp.next = si->next;
-			*si = temp;
+			*si = temp; // 将 temp 的内容复制到 si
 		}
 	}
 	return si;

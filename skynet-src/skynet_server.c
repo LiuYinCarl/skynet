@@ -316,6 +316,8 @@ skynet_context_message_dispatch(struct skynet_monitor *sm, struct message_queue 
 
 	for (i=0;i<n;i++) {
 		if (skynet_mq_pop(q,&msg)) {
+            // 消息队列为空
+            //
 			skynet_context_release(ctx);
 			return skynet_globalmq_pop();
 		} else if (i==0 && weight >= 0) {
@@ -329,6 +331,7 @@ skynet_context_message_dispatch(struct skynet_monitor *sm, struct message_queue 
 
 		skynet_monitor_trigger(sm, msg.source , handle);
 
+        // 分发从消息队列中取出的消息
 		if (ctx->cb == NULL) {
 			skynet_free(msg.data);
 		} else {
@@ -338,6 +341,8 @@ skynet_context_message_dispatch(struct skynet_monitor *sm, struct message_queue 
 		skynet_monitor_trigger(sm, 0,0);
 	}
 
+    // 如果全局队列是非空的，那么就从全局队列头部取出一个新的队列，同时将处理完成的队列
+    // 插入到全局队列的尾部。如果全局队列是空的，那么就继续处理现在这个队列。
 	assert(q == ctx->queue);
 	struct message_queue *nq = skynet_globalmq_pop();
 	if (nq) {
@@ -399,6 +404,7 @@ static const char *
 cmd_timeout(struct skynet_context * context, const char * param) {
 	char * session_ptr = NULL;
 	int ti = strtol(param, &session_ptr, 10);
+    // TODO 为什么需要增加 session 值
 	int session = skynet_context_newsession(context);
 	skynet_timeout(context->handle, ti, session);
 	sprintf(context->result, "%d", session);
