@@ -60,6 +60,11 @@ struct skynet_context {
 	CHECKCALLING_DECL
 };
 
+void
+print_skynet_context(struct skynet_context *ctx) {
+    LLOG2(1, "skynet_context:[session_id:%d handle:%d ref:%d]", ctx->session_id, ctx->handle, ctx->ref);
+}
+
 struct skynet_node {
 	ATOM_INT total;
 	int init;

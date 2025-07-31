@@ -75,6 +75,7 @@ write_pid(const char *pidfile) {
 	return pid;
 }
 
+// 关闭标准输入、标准输出、标准错误
 static int
 redirect_fds() {
 	int nfd = open("/dev/null", O_RDWR);

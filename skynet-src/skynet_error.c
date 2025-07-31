@@ -10,8 +10,10 @@
 
 #define LOG_MESSAGE_SIZE 256
 
+// 将内容格式化到 strp 并返回日志长度
 static int
 log_try_vasprintf(char **strp, const char *fmt, va_list ap) {
+    // 这里是 skynet 自定义的一种打印格式
 	if (strcmp(fmt, "%*s") == 0) {
 		// for `lerror` in lua-skynet.c
 		const int len = va_arg(ap, int);

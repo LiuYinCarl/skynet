@@ -13,8 +13,10 @@ struct skynet_env {
 	lua_State *L;
 };
 
+// 专门用于保存配置的虚拟机
 static struct skynet_env *E = NULL;
 
+// 读取配置
 const char * 
 skynet_getenv(const char *key) {
 	SPIN_LOCK(E)
@@ -30,6 +32,7 @@ skynet_getenv(const char *key) {
 	return result;
 }
 
+// 写入配置
 void 
 skynet_setenv(const char *key, const char *value) {
 	SPIN_LOCK(E)
@@ -44,6 +47,7 @@ skynet_setenv(const char *key, const char *value) {
 	SPIN_UNLOCK(E)
 }
 
+// 初始化配置虚拟机
 void
 skynet_env_init() {
 	E = skynet_malloc(sizeof(*E));

@@ -44,4 +44,10 @@ void skynet_debug_memory(const char *info);	// for debug use, output current ser
 
 #define LLOG(fmt, ...) printf("\033[31m[DEBUG] " fmt "\033[0m\n", ##__VA_ARGS__)
 
+#define LLOG2(level, fmt, ...) {                \
+        printf("\033[31m[DEBUG] ");             \
+        printf("%*c", level*2, ' ');            \
+        printf(fmt "\033[0m\n", ##__VA_ARGS__); \
+    }
+
 #endif

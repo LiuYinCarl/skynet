@@ -17,6 +17,7 @@ struct handle_name {
 	uint32_t handle;
 };
 
+// 所有 handle 的存储位置
 struct handle_storage {
 	struct rwlock lock;
 
@@ -32,6 +33,28 @@ struct handle_storage {
 
 static struct handle_storage *H = NULL;
 
+
+void
+print_handle_storage() {
+    LLOG("=== handle_storage ===");
+    LLOG("harbor: %d", H->harbor);
+    LLOG("handle_index: %d", H->handle_index);
+    LLOG("slot_size: %d", H->slot_size);
+    for (int i = 0; i < H->slot_size; i++) {
+        uint32_t hash = i & (H->slot_size-1);
+        struct skynet_context * ctx = H->slot[hash];
+        if (!ctx) { continue; }
+        print_skynet_context(ctx);
+    }
+    for (int i = 0; i < H->name_count; i++) {
+        struct handle_name n = H->name[i];
+        LLOG("name: %s \t handle: %d", n.name, n.handle);
+    }
+}
+
+
+// 注册一个 context,返回 handle
+// 会在调用的地方将返回的 handle 设置到 ctx->handle
 uint32_t
 skynet_handle_register(struct skynet_context *ctx) {
 	struct handle_storage *s = H;
@@ -41,6 +64,7 @@ skynet_handle_register(struct skynet_context *ctx) {
 	for (;;) {
 		int i;
 		uint32_t handle = s->handle_index;
+        // 从前往后，测试所有 handle
 		for (i=0;i<s->slot_size;i++,handle++) {
             // handle 超过上限会绕回
 			if (handle > HANDLE_MASK) {
@@ -55,7 +79,8 @@ skynet_handle_register(struct skynet_context *ctx) {
 				s->handle_index = handle + 1;
 
 				rwlock_wunlock(&s->lock);
-
+                // 需要注意，在这里 handle 高8位被设置为了harbor ID
+                // 之后 handle 如果需要用来计算 hash 需要去除掉高8位
 				handle |= s->harbor;
 				return handle;
 			}
@@ -81,6 +106,7 @@ skynet_handle_register(struct skynet_context *ctx) {
 	}
 }
 
+// 取消一个 handle 的注册
 int
 skynet_handle_retire(uint32_t handle) {
 	int ret = 0;
@@ -127,6 +153,7 @@ skynet_handle_retire(uint32_t handle) {
 	return ret;
 }
 
+// 取消所有 handle 的注册
 void
 skynet_handle_retireall() {
 	struct handle_storage *s = H;
@@ -151,6 +178,7 @@ skynet_handle_retireall() {
 	}
 }
 
+// 通过 handle 获取 skynet_context
 struct skynet_context *
 skynet_handle_grab(uint32_t handle) {
 	struct handle_storage *s = H;
@@ -158,10 +186,13 @@ skynet_handle_grab(uint32_t handle) {
 
 	rwlock_rlock(&s->lock);
 
+    // 这里的 handle 高 8 位其实是 harbor ID
+    // 但是因为使用了 &, 结果的高 8 位会直接变为 0，所以不需要考虑
 	uint32_t hash = handle & (s->slot_size-1);
 	struct skynet_context * ctx = s->slot[hash];
 	if (ctx && skynet_context_handle(ctx) == handle) {
 		result = ctx;
+        // 增加 context 的引用计数
 		skynet_context_grab(result);
 	}
 
@@ -203,6 +234,7 @@ skynet_handle_findname(const char * name) {
 }
 
 // 二分法插入，能选择这个办法应该是因为 s->name 数组中的成员变动较少
+// s->name 数组按照字典序排序，所以按照 name 找 handle 可以直接二分搜索
 static void
 _insert_name_before(struct handle_storage *s, char *name, uint32_t handle, int before) {
 	if (s->name_count >= s->name_cap) {
@@ -229,6 +261,8 @@ _insert_name_before(struct handle_storage *s, char *name, uint32_t handle, int b
 	s->name_count ++;
 }
 
+// 将 (name, handle) 插入到 handle_storage
+// 返回一个复制后的 name 字符串的地址
 static const char *
 _insert_name(struct handle_storage *s, const char * name, uint32_t handle) {
 	int begin = 0;
@@ -246,6 +280,7 @@ _insert_name(struct handle_storage *s, const char * name, uint32_t handle) {
 			end = mid - 1;
 		}
 	}
+    // 复制一下 name
 	char * result = skynet_strdup(name);
 
 	_insert_name_before(s, result, handle, begin);
@@ -253,11 +288,15 @@ _insert_name(struct handle_storage *s, const char * name, uint32_t handle) {
 	return result;
 }
 
+// 将 (name, handle) 信息插入到 handle_storage->name 数组
+// handle_storage->name 数组按照 name 的字典序排列
 const char *
 skynet_handle_namehandle(uint32_t handle, const char *name) {
 	rwlock_wlock(&H->lock);
 
 	const char * ret = _insert_name(H, name, handle);
+
+    print_handle_storage();
 
 	rwlock_wunlock(&H->lock);
 
