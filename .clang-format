@@ -1,0 +1,6 @@
+DisableFormat: true  # 关闭所有格式化
+# BasedOnStyle: LLVM  # 基础风格，可选 Google/Microsoft 等
+IndentWidth: 4      # 强制缩进为4空格（非2格）
+# UseTab: Never       # 禁用制表符，仅用空格
+# AllowShortFunctionsOnASingleLine: false  # 禁止单行函数
+# AllowShortIfStatementsOnASingleLine: false  # 禁止单行if
