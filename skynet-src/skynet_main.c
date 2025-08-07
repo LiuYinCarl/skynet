@@ -13,6 +13,8 @@
 #include <signal.h>
 #include <assert.h>
 
+// 从 conf 配置中获取指定 key 的 int 类型配置
+// 如果没有配置，则设置为默认值 opt 并返回 opt
 static int
 optint(const char *key, int opt) {
 	const char * str = skynet_getenv(key);
@@ -25,6 +27,8 @@ optint(const char *key, int opt) {
 	return strtol(str, NULL, 10);
 }
 
+// 从 conf 配置中获取指定 key 的 bool 类型配置
+// 如果没有配置，则设置为默认值 opt 并返回 opt
 static int
 optboolean(const char *key, int opt) {
 	const char * str = skynet_getenv(key);
@@ -35,6 +39,8 @@ optboolean(const char *key, int opt) {
 	return strcmp(str,"true")==0;
 }
 
+// 从 conf 配置中获取指定 key 的 string 类型配置
+// 如果没有配置，则设置为默认值 opt 并返回 opt
 static const char *
 optstring(const char *key,const char * opt) {
 	const char * str = skynet_getenv(key);
