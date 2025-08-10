@@ -54,6 +54,8 @@ optstring(const char *key,const char * opt) {
 	return str;
 }
 
+// 需要理解这个 while 循环获得各个配置项是
+// 什么地方添加的配置
 static void
 _init_env(lua_State *L) {
 	lua_pushnil(L);  /* first key */
@@ -64,6 +66,7 @@ _init_env(lua_State *L) {
 			exit(1);
 		}
 		const char * key = lua_tostring(L,-2);
+        LLOG("key = %s", key);
 		if (lua_type(L,-1) == LUA_TBOOLEAN) {
 			int b = lua_toboolean(L,-1);
 			skynet_setenv(key,b ? "true" : "false" );
@@ -95,6 +98,7 @@ static const char * load_config = "\
 	local sep = package.config:sub(1,1)\n\
 	local current_path = [[.]]..sep\n\
 	local function include(filename)\n\
+        print('call include filename: ' .. filename) \n\
 		local last_path = current_path\n\
 		local path, name = filename:match([[(.*]]..sep..[[)(.*)$]])\n\
 		if path then\n\
@@ -143,6 +147,7 @@ main(int argc, char *argv[]) {
 	luaL_initcodecache();
 #endif
 
+    // 创建一个临时虚拟机用来加载配置文件
 	struct lua_State *L = luaL_newstate();
 	luaL_openlibs(L);	// link lua lib
 
@@ -156,9 +161,12 @@ main(int argc, char *argv[]) {
 		lua_close(L);
 		return 1;
 	}
+    // 将从临时虚拟机中读取到的配置设置到配置虚拟机中
 	_init_env(L);
+    // 关闭临时虚拟机
 	lua_close(L);
 
+    // 从配置虚拟机中读取一些基础配置，如果没有配置，则设置默认值
 	config.thread =  optint("thread",8);
 	config.module_path = optstring("cpath","./cservice/?.so");
 	config.harbor = optint("harbor", 1);
