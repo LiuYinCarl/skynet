@@ -7,6 +7,7 @@
 
 #define MESSAGEPOOL 1023
 
+// 单个消息结构
 struct message {
 	char * buffer;
 	int size;
