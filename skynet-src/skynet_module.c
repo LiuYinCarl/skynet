@@ -63,6 +63,7 @@ _try_open(struct modules *m, const char * name) {
 	return dl;
 }
 
+// 查询 module 是否存在，存在则返回该 module
 static struct skynet_module *
 _query(const char * name) {
 	int i;
@@ -87,6 +88,7 @@ get_api(struct skynet_module *mod, const char *api_name) {
 	} else {
 		ptr = ptr + 1;
 	}
+    LLOG("[get_api] mod_name:%s api_name:%s tmp=%s", mod->name, api_name, tmp);
 	return dlsym(mod->module, ptr);
 }
 
@@ -110,6 +112,11 @@ skynet_module_query(const char * name) {
 
 	result = _query(name); // double check
 
+    // 找不到模块的时候尝试加载模块一次
+    // 所以上面的 double check 其实就是因为另一个线程 A
+    // 在拥有锁的时候可能加载了模块，所以 double check 一下
+    // 避免本线程也重复加载，因为加载 module 的过程中是不会检查
+    // module 是否已经加载过。
 	if (result == NULL && M->count < MAX_MODULE_TYPE) {
 		int index = M->count;
 		void * dl = _try_open(M,name);

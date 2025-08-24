@@ -90,6 +90,7 @@ free_monitor(struct monitor *m) {
 	skynet_free(m);
 }
 
+// 每隔 5 秒检查一下所有 monitor，侦测死锁
 static void *
 thread_monitor(void *p) {
 	struct monitor * m = p;

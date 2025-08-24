@@ -32,6 +32,7 @@ struct message_queue {
 	struct message_queue *next;
 };
 
+// 全局队列的列表成员是消息队列
 struct global_queue {
 	struct message_queue *head;
 	struct message_queue *tail;
@@ -181,6 +182,7 @@ skynet_mq_pop(struct message_queue *q, struct skynet_message *message) {
 	return ret;
 }
 
+// 扩充消息队列容量(每次翻2倍)
 static void
 expand_queue(struct message_queue *q) {
 	struct skynet_message *new_queue = skynet_malloc(sizeof(struct skynet_message) * q->cap * 2);
@@ -196,6 +198,7 @@ expand_queue(struct message_queue *q) {
 	q->queue = new_queue;
 }
 
+// 将一条消息插入消息队列
 void 
 skynet_mq_push(struct message_queue *q, struct skynet_message *message) {
 	assert(message);
@@ -226,6 +229,7 @@ skynet_mq_init() {
 	Q=q;
 }
 
+// 将一个消息队列标记为待释放
 void 
 skynet_mq_mark_release(struct message_queue *q) {
 	SPIN_LOCK(q)
@@ -237,6 +241,7 @@ skynet_mq_mark_release(struct message_queue *q) {
 	SPIN_UNLOCK(q)
 }
 
+// 释放一个消息队列中的所有消息
 static void
 _drop_queue(struct message_queue *q, message_drop drop_func, void *ud) {
 	struct skynet_message msg;
