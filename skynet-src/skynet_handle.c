@@ -306,6 +306,7 @@ skynet_handle_namehandle(uint32_t handle, const char *name) {
 void
 skynet_handle_init(int harbor) {
 	assert(H==NULL);
+    // 初始化 handle_storage
 	struct handle_storage * s = skynet_malloc(sizeof(*H));
 	s->slot_size = DEFAULT_SLOT_SIZE;
 	s->slot = skynet_malloc(s->slot_size * sizeof(struct skynet_context *));
